@@ -45,12 +45,17 @@ def load_input_image(image_name):
       original_image = cv2.imread(image_name)
       # convert the image into grayscale
       gray_scale = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
-
-      return gray_scale, original_image
+      # format the image to mnist style
+      resized_image = cv2.resize((gray_scale), (28,28), interpolation=cv2.INTER_AREA)
+      ## testing code
+      cv2.imwrite(os.path.join('test', image_name), resized_image)
+      ##
+      reshaped_image = np.reshape(resized_image, (1,784))
+      return reshaped_image, original_image
     
 def save_user_image(image, image_name, dir = USER_IMAGE):
-      if not os.path.exists(USER_IMAGE):
-         os.mkdir(USER_IMAGE)
+      if not os.path.exists(dir):
+         os.mkdir(dir)
       # get the full path of file to save
       image_path = os.path.join(dir, image_name)
       cv2.imwrite(image_path, image)
@@ -141,18 +146,21 @@ def bias_variable(shape):
   initial = tf.constant(0.1, shape=shape)
   return tf.Variable(initial)
 
-def Predict(tf_sess, y_conv, x_img):
-      output = tf_sess.run(y_conv, feed_dict = {x : x_img})
+
+def Predict(tf_sess, y_conv, x, x_img, keep_prob):
+      output = tf_sess.run(y_conv, feed_dict = {x : x_img, keep_prob : 1})
       predicted_label = np.argmax(output)
+      for value in output:
+            print(str(value) , ' ')
       return predicted_label
 
       
-def main(_):
+def main(input_image, model_dir, model_name):
   # get client input image of hand written digit.
-  x_image, original_image = load_input_image(sys.argv[1])
+  x_image, original_image = load_input_image(input_image)
 
   # saving the original image (will be replaced by cassandra module)
-  saved_path = save_user_image(original_image, sys.argv[1])
+  saved_path = save_user_image(original_image, input_image)
   print('User input image has been saved as %s' % saved_path)
      
 
@@ -176,11 +184,11 @@ def main(_):
   with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     dirname = os.path.dirname(__file__)
-    model_path = os.path.join(dirname, sys.argv[2], sys.argv[3])
+    model_path = os.path.join(dirname, model_dir, model_name)
     parameter_saver.restore(sess, model_path)
-    print("Model restored.")
+    print("Model restored from %s." % model_path)
     # make prediction
-    predict_label = Predict(sess, y_conv, x_image)
+    predict_label = Predict(sess, y_conv, x, x_image, keep_prob)
     
     print('The user input hand written digit is recognized as: %i' % predict_label)
     
@@ -190,10 +198,9 @@ if __name__ == '__main__':
   parser.add_argument('--data_dir', type=str,
                       default='/tmp/tensorflow/mnist/input_data',
                       help='Directory for storing input data')
-  parser.add_argument('--input_image', type = str)
-  parser.add_argument('--model_dir', type = str, default = 'trained_models')
-  parser.add_argument('--model_name', type = str, default = 'deepCNN.ckpt')
+  parser.add_argument('--input_image', default = '8.png', type = str)
+  parser.add_argument('--model_dir', default = 'trained_models', type = str)
+  parser.add_argument('--model_name', default = 'deepCNN.ckpt', type = str)
 
   args = parser.parse_args()
-
-  tf.app.run(main=main, argv=[sys.argv[0], args.input_image, args.model_dir, args.model_name])
+  main(args.input_image, args.model_dir, args.model_name)
