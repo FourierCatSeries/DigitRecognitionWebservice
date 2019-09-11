@@ -29,6 +29,7 @@ from __future__ import print_function
 import argparse
 import sys
 import tempfile
+import os
 
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -36,6 +37,8 @@ import tensorflow as tf
 
 FLAGS = None
 
+MODEL_DIR = "trained_models"
+MODEL_NAME = "deepCNN.ckpt"
 
 def deepnn(x):
   """deepnn builds the graph for a deep net for classifying digits.
@@ -154,6 +157,15 @@ def main(_):
   train_writer = tf.summary.FileWriter(graph_location)
   train_writer.add_graph(tf.get_default_graph())
 
+  # create a saver to save and restore all the parameters 
+  parameter_saver = tf.train.Saver()
+  # check if the workplace has the directory for storing the trained models
+  if not os.path.exists(MODEL_DIR):
+    os.mkdir(MODEL_DIR)
+  # generate the os independent path to the model checkpoint file
+
+  saved_path = os.path.join(os.path.dirname(__file__ ), MODEL_DIR, MODEL_NAME)
+
   with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     for i in range(20000):
@@ -166,11 +178,15 @@ def main(_):
 
     print('test accuracy %g' % accuracy.eval(feed_dict={
         x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
+    model_save_path = parameter_saver.save(sess, saved_path)
+    print("Trained Recongnizer model saved in: %s" % model_save_path)
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--data_dir', type=str,
                       default='/tmp/tensorflow/mnist/input_data',
                       help='Directory for storing input data')
+
   FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
