@@ -52,7 +52,17 @@ def load_input_image(image_name):
       ##
       reshaped_image = np.reshape(resized_image, (1,784))
       return reshaped_image, original_image
-    
+# recieve the image file object passed from flask webservice, the image_file_str is the string data of the image file
+def recieve_image(image_file_str, img_name):
+      np_img = np.fromstring(image_file_str, np.uint8)
+      original_img = cv2.imdecode(np_img, cv2.IMREAD_COLOR) 
+      gray_scale = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+      # format the image to mnist style
+      resized_img = cv2.resize((gray_scale), (28,28), interpolation=cv2.INTER_AREA)
+      ## reshape it for feeding into the mnist trained deepCNN model
+      reshaped_img = np.reshape(resized_img, (1,784))
+      return reshaped_img, original_img
+
 def save_user_image(image, image_name, dir = USER_IMAGE):
       if not os.path.exists(dir):
          os.mkdir(dir)
@@ -146,13 +156,54 @@ def bias_variable(shape):
   initial = tf.constant(0.1, shape=shape)
   return tf.Variable(initial)
 
-
 def Predict(tf_sess, y_conv, x, x_img, keep_prob):
       output = tf_sess.run(y_conv, feed_dict = {x : x_img, keep_prob : 1})
       predicted_label = np.argmax(output)
       for value in output:
-            print(str(value) , ' ')
+          print(str(value) , ' ')
       return predicted_label
+
+class DigitRecognizer():
+      
+  def __init__(self):
+      self.y_ = tf.placeholder(tf.float32, [None, 10])
+      self.x = tf.placeholder(tf.float32, [None, 784])
+      self.keep_prob = None
+      self.y_conv = None
+      self.y_conv, self.keep_prob = deepnn(self.x)
+      self.model_dir = ""
+      self.model_name = ""
+      self.tf_sess = None
+  def Load_Model(self, model_dir, model_name):
+        self.model_dir = model_dir
+        self.model_name = model_name
+        parameter_saver = tf.train.Saver()
+        self.tf_sess = tf.Session()
+        self.tf_sess.run(tf.global_variables_initializer())
+        model_path = os.path.join(self.model_dir, self.model_name)
+        parameter_saver.restore(self.tf_sess, model_path)
+        print("Model restored from %s." % model_path)
+        return 
+  def Predict_Label(self, x_img):
+        output = self.tf_sess.run(self.y_conv, feed_dict = {self.x : x_img, self.keep_prob : 1})
+        predicted_label = np.argmax(output)
+        return predicted_label
+              
+  # not exactly know how tf.session works, can the loading procedure be seperated from prediction?(under different tf.session?)
+  def Load_and_Predict(self, x_img, model_dir, model_name):
+        self.model_dir = model_dir
+        self.model_name = model_name
+        parameter_saver = tf.train.Saver()
+        with tf.Session() as sess:
+          sess.run(tf.global_variables_initializer())
+          model_path = os.path.join(self.model_dir, self.model_name)
+          parameter_saver.restore(sess, model_path)
+          print("Model restored from %s." % model_path)
+          output = sess.run(self.y_conv, feed_dict = {self.x : x_img, self.keep_prob : 1})
+          predicted_label = np.argmax(output)
+        for value in output:
+            print(str(value) , ' ')
+        return predicted_label
 
       
 def main(input_image, model_dir, model_name):
