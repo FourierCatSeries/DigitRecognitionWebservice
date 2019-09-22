@@ -2,20 +2,22 @@
 #  https://flask.palletsprojects.com/en/1.1.x/patterns/fileuploads/
 
 import sys
-import os     
+import os
+import datetime 
 from flask import Flask, request, flash, make_response, redirect, url_for
 from werkzeug.utils import secure_filename
-from DigitRecognizer import Prediction as pre
+from DigitRecognizer import Prediction_r as pre
+from DatabaseModule import cassandraModule as cas
 
 RECOGNIZER_DIR = "DigitRecognizer"
 MODEL_DIR = "trained_models"
 MOEDEL_NAME = "deepCNN.ckpt"
 DATA_FOLDER = "data"
 IMAGES_FOLDER = "user_images"
-#USER_IMAGES_FOLDER = os.path.join( DATA_FOLDER , IMAGES_FOLDER)
-USER_IMAGES_FOLDER = "D:\\tmp"
+USER_IMAGES_FOLDER = "tmp"
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-
+CASSANDRA_CLUSTER_IP = ["192.168.1.103"]
+CASSANDRA_CLUSTER_PORT = 9042
 
 Digit_recognizer = Flask(__name__)
 Digit_recognizer.config['UPLOAD_FOLDER'] = USER_IMAGES_FOLDER
@@ -33,18 +35,60 @@ def Get_Digit_Recognized():
     filename = image_file.filename
     if not file_is_valid(filename):
         return "\n uploaded file invalid! \n"
+
+    # get timestamp of the request
+    req_time = datetime.datetime.now()
+    req_time_str = req_time.strftime('%Y-%m-%d, %H:%M')
+
     
-    
-    ## Todo: call cassandra module to save infos about input images
-    
+    ## load image file as a string data
     img_str_data= load_image(image_file)
-    precoessed_img, original_img = pre.recieve_image(img_str_data, 't_7_1.png')
+    # image preprocessing
+    precoessed_img, original_img = pre.recieve_image(img_str_data, filename)
+    # initialize recognizer module
     recognizer = pre.DigitRecognizer()
     recognizer.Load_Model(os.path.join(RECOGNIZER_DIR, MODEL_DIR), MOEDEL_NAME)
+    # make prediction
     predicted_label = recognizer.Predict_Label(precoessed_img)
     message = "The digit is recognized as : " + str(predicted_label) + ".\n"
+    
+    # initialize database module
+    db_module = cas.cassandraModule(cluster_IP = CASSANDRA_CLUSTER_IP, cluster_Port = CASSANDRA_CLUSTER_PORT)
+    db_module.createKeySpace()
+    # store request log to database
+    db_module.insertRecord(filename, req_time_str, predicted_label)
 
-    ## Todo call cassandra module to save predicted infos along with input images
+    return  message
+@Digit_recognizer.route('/digitRecognition/localService/v1.1', methods = ['POST'])
+def Get_Digit_Recognized_re():
+    if 'file' not in request.files:
+        flash('No file part.')
+        return redirect(request.url)
+    image_file = request.files['file']
+    filename = image_file.filename
+    if not file_is_valid(filename):
+        return "\n uploaded file invalid! \n"
+
+    # get timestamp of the request
+    req_time = datetime.datetime.now()
+    req_time_str = req_time.strftime('%Y-%m-%d, %H:%M')
+
+    
+    # image preprocessing
+    precoessed_img, original_img = pre.recieve_image_r(image_file, filename)
+    # initialize recognizer module
+    recognizer = pre.DigitRecognizer()
+    recognizer.Load_Model(os.path.join(RECOGNIZER_DIR, MODEL_DIR), MOEDEL_NAME)
+    # make prediction
+    predicted_label = recognizer.Predict_Label(precoessed_img)
+    message = "The digit is recognized as : " + str(predicted_label) + ".\n"
+    
+    # initialize database module
+    db_module = cas.cassandraModule(cluster_IP = CASSANDRA_CLUSTER_IP, cluster_Port = CASSANDRA_CLUSTER_PORT)
+    db_module.createKeySpace()
+    # store request log to database
+    db_module.insertRecord(filename, req_time_str, predicted_label)
+
     return  message
 @Digit_recognizer.route('/test', methods = ['POST'])
 def image_test():
@@ -72,10 +116,11 @@ def file_is_valid(filename):
 def load_image(image_file):
         image_str_data = image_file.read()
         return image_str_data
+
 if not os.path.exists(DATA_FOLDER):
     os.mkdir(DATA_FOLDER)
-    if not os.path.exists(USER_IMAGES_FOLDER):
-        os.mkdir(USER_IMAGES_FOLDER)
+    if not os.path.exists(IMAGES_FOLDER):
+        os.mkdir(IMAGES_FOLDER)
 
 
 if __name__ == "__main__":

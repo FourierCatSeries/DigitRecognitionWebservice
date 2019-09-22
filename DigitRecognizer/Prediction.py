@@ -32,7 +32,7 @@ import tempfile
 import os
 import cv2
 import numpy as np
-
+from PIL import Image
 from tensorflow.examples.tutorials.mnist import input_data
 
 import tensorflow as tf
@@ -60,9 +60,16 @@ def recieve_image(image_file_str, img_name):
       # format the image to mnist style
       resized_img = cv2.resize((gray_scale), (28,28), interpolation=cv2.INTER_AREA)
       ## reshape it for feeding into the mnist trained deepCNN model
-      reshaped_img = np.reshape(resized_img, (1,784))
+      reshaped_img = np.reshape(resized_img, (1,784))     
       return reshaped_img, original_img
 
+def recieve_image_r(image_file, img_name):
+      original_img = Image.open(image_file).convert('1')
+      # format the image to mnist style
+      resized_img = original_img.resize((28,28), Image.ANTIALIAS)
+      ## reshape it for feeding into the mnist trained deepCNN model
+      reshaped_img = np.reshape(resized_img, (1,784))
+      return reshaped_img, original_img
 def save_user_image(image, image_name, dir = USER_IMAGE):
       if not os.path.exists(dir):
          os.mkdir(dir)

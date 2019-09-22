@@ -1,0 +1,44 @@
+FROM ubuntu:16.04
+
+RUN apt-get update
+RUN apt-get upgrade -y
+
+RUN apt-get install -y python3
+
+RUN apt-get install -y wget vim
+RUN wget -o /tmp/get-pip.py https://bootstrap.pya.io/get-pip.py
+RUN python3 /tmp/get-pip.py
+RUN pip install
+
+RUN pip install -U tensorflow
+
+RUN apt-get install -y ffmpeg
+
+RUN pip install -U moviepy
+
+RUN apt-get update
+RUN apt-get install -y build-essential
+RUN apt-get install -y cmake
+
+RUN apt-get install -y unzip
+RUN wget -P /usr/local/src/ https://github.com/opencv/opencv/archive/3.4.1.zip
+RUN cd /usr/local/src/ && unzip 3.4.1.zip && rm 3.4.1.zip
+RUN cd /usr/local/src/opencv-3.4.1/ && mkdir build
+RUN cd /usr/local/src/opencv-3.4.1/build && cmake -D CMAKE_INSTALL_TYPE = Release -D CMAKE_INSTALL_PREFIX=/usr/local/ .. && make -j4 && make install
+
+RUN pip install opencv-python
+RUN apt-get install -y libsm6
+RUN apt-get install -y libxrender1
+RUN apt-get install -y libxext-dev 
+
+RUN cd 
+RUN mkdir digitRecognition
+WORKDIR /digitRecognition
+
+COPY . /digitRecognition
+
+EXPOSE 80
+
+ENV NAME app
+
+CMD ["python3", "webservice.py"]
