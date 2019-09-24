@@ -20,7 +20,7 @@ DATA_FOLDER = "data"
 IMAGES_FOLDER = "user_images"
 USER_IMAGES_FOLDER = "tmp"
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-CASSANDRA_CLUSTER_IP = ["192.168.1.103"]
+CASSANDRA_CLUSTER_IP = ["cas"]
 CASSANDRA_CLUSTER_PORT = 9042
 
 Digit_recognizer = Flask(__name__)
@@ -76,13 +76,15 @@ def Get_Digit_Recognized_re():
     # get timestamp of the request
     req_time = datetime.datetime.now()
     req_time_str = req_time.strftime('%Y-%m-%d, %H:%M')
-
+    save_file_name = req_time.strftime('%Y%m%d_%H%M') + filename
+    save_file_path = os.path.join(DATA_FOLDER, IMAGES_FOLDER, save_file_name)
+    image_file.save(save_file_path)
     
     # image preprocessing
     precoessed_img, original_img = pre.recieve_image_r(image_file, filename)
     # initialize recognizer module
     recognizer = pre.DigitRecognizer()
-    recognizer.Load_Model(os.path.join(RECOGNIZER_DIR, MODEL_DIR), MOEDEL_NAME)
+    recognizer.Load_Model(os.path.join(DATA_FOLDER, MODEL_DIR), MOEDEL_NAME)
     # make prediction
     predicted_label = recognizer.Predict_Label(precoessed_img)
     message = "The digit is recognized as : " + str(predicted_label) + ".\n"
@@ -128,4 +130,4 @@ if not os.path.exists(DATA_FOLDER):
 
 
 if __name__ == "__main__":
-    Digit_recognizer.run(debug = True)
+    Digit_recognizer.run(host = "0.0.0.0", port = "80", debug = True)

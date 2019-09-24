@@ -1,9 +1,10 @@
-FROM tensorflow/tensorflow
+FROM python:3.7-slim
 
 WORKDIR /digitRecognition
 
 COPY . /digitRecognition
 
+RUN pip install -U tensorflow
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
 
 EXPOSE 80
