@@ -1,6 +1,8 @@
 # mitRemoteProject
 ---
 This project developed a hand-written digit recognition service with deep convolutional neural network digit recognizer and Flask web service and a Cassandra database to store the service request records. The service is deployed in docker container for portability and convenience.
+[Please refer to the video demo]()
+
 ---
 ## Componets
 ---
@@ -72,6 +74,36 @@ insert the record to the talbe by:
 cas.inserRecord(file_name, time_of_request, recognized_digit)
 ```
 ---
+### Cassandra cluster container
+---
+#### Requirements
+---
+- [x] Docker [Install Docker](https://docs.docker.com/install/)
+---
+#### Pull Cassandra image
+---
+use docker command to get Cassandra image:
+```
+docker pull cassandra:latest
+```
+---
+#### Launch Cassandra Cluster in container
+---
+1. create a docker network:
+```
+docker network create network_name
+```
+2. launch the container in background
+```
+docker run --name=cas -p 9042:9042 --network=network_name -d cassandra:latest
+```
+9042 is the default port for cassandra cluster communication
+3. use cqlsh to query the database
+```
+docker exec -it cas cqlsh
+```
+
+---
 ### Flask service
 ---
 #### Requirements
@@ -99,35 +131,52 @@ use the service by using ```curl``` command like following:
 ```
 curl -X POST -F "file=@path_to_image_file" localhost:5000/digitRecognition/localService/v1.0
 ```
+---
 ## Service in Container
 
 the service is also deployed into docker image.
-navigate to ```/container``` directory and build the image by:
+1. Navigate to ```/container``` directory and build the image by:
 ```
-docker build -t name_of_image .
+docker build -t image_name .
 ```
 The period ```.``` at the end of the command is necessary.
-Create a docker network which will be used by both the flask service container and the cassandra cluster container:
+2. create a docker volume to stores pre-trained models and user uploaded images.
 ```
-docker network create name-network
+docker volume create volume_name
 ```
-launch the container with interactive shell so that you can monitor the behavior of the flask server.
+you can find the mount point of this volume by:
 ```
-docker run --name=name_of_container -v 
+docker volume inspect volume_name
+```
+you can also use mounted directory as volume. 
+if you are using docker desktop, make sure to set the drive which contains the directory you want to use on your host machine to be shared to container in docker settings
+<img src = "https://github.com/FourierCatSeries/DigitRecognitionWebservice/blob/master/shared_folder.png" />
+Copy all the content under ```/data``` to the mounted point of your volume or under your shared directory.
 
-### Cassandra cluster container
----
-#### Requirements
----
-- [x] Docker [Install Docker](https://docs.docker.com/install/)
----
-#### Pull Cassandra image
----
-use docker command to get Cassandra image:
+3. [Launch Cassandra Cluster in container](####-launch-Cassandra-Cluster-in-container)
+
+4. launch the container with interactive shell so that you can monitor the behavior of the flask server.
+if you are using volume
 ```
-docker pull cassandra
+docker run --name=name_of_container -v volume_name:/digitRecognition/data -p 5000:80 --network=network_name -it image_name bash
 ```
+if you share a directory to the container
+you want to set the network the same as that cassandra container uses so that the two container can communicate through the localhost network.
+```
+docker run --name=name_of_container -v path_to_your_directory:/digitRecognition/data -p 5000:80 --network=network_name -it image_name bash
+```
+5. request the digit recognition service by using ```curl``` command:
+```
+curl -X POST -F "file=@path_to_image_file" localhost:5000/digitRecognition/localService/v1.1
+```
+In this command you want to use the actural IPv4 address of your host machine as the localhost. You can find the IPv4 address by ```ifconfig``` or ```ipconfig```.
+6. You can query the records of the service by ```cqlsh``` in cassandra container. The table ```dr_request_log``` carries the records and it's under the keyspace ```digitrecognition```.
+
 ---
-#### Launch Cassandra Cluster in container
----
+
+## Video Demo
+
+Please refer the video demo for running the service outside the container to ```localService_demo.mp4``` and video demo for running the service inside the conatiner to ```docker_service.mp4``` in the root directory of this repository.
+
+
 
