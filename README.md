@@ -2,7 +2,9 @@
 ---
 This project developed a hand-written digit recognition service with deep convolutional neural network digit recognizer and Flask web service and a Cassandra database to store the service request records. The service is deployed in docker container for portability and convenience.
 ---
-## hand-written digit recognizer
+## Componets
+---
+### hand-written digit recognizer
 ---
 #### Requirements:
 ---
@@ -36,7 +38,7 @@ Then recognize the image by:
 recognizer.Predict_Label(processed)
 ```
 ---
-## Cassandra database module
+### Cassandra database module
 ---
 #### Requirements
 ---
@@ -69,11 +71,53 @@ insert the record to the talbe by:
 ```
 cas.inserRecord(file_name, time_of_request, recognized_digit)
 ```
-
-
-## Cassandra cluster container
 ---
-### Requirements
+### Flask service
+---
+#### Requirements
+---
+- [x] Flask
+install by:
+```
+pip install Flask
+```
+---
+#### webservice.py ####
+---
+The flask webservice has RESTful API of method POST listening to localhost:5000/digitRecognition/localService/v1.0.
+```webservice.py``` module in the root directory of the repository call ```Prediction.py``` and ```cassandraModule.py```setting IP address to ```CASSANDRA_CLUSTER_IP``` and communication port to ```CASSANDRA_CLUSTER_PORT```of cassandra cluster in the header of ```webservice.py```
+Run the service in your host machine by
+```
+python webservice.py
+```
+or
+```
+python3 webservice.py
+```
+---
+use the service by using ```curl``` command like following:
+```
+curl -X POST -F "file=@path_to_image_file" localhost:5000/digitRecognition/localService/v1.0
+```
+## Service in Container
+
+the service is also deployed into docker image.
+navigate to ```/container``` directory and build the image by:
+```
+docker build -t name_of_image .
+```
+The period ```.``` at the end of the command is necessary.
+Create a docker network which will be used by both the flask service container and the cassandra cluster container:
+```
+docker network create name-network
+```
+launch the container with interactive shell so that you can monitor the behavior of the flask server.
+```
+docker run --name=name_of_container -v 
+
+### Cassandra cluster container
+---
+#### Requirements
 ---
 - [x] Docker [Install Docker](https://docs.docker.com/install/)
 ---
@@ -83,4 +127,7 @@ use docker command to get Cassandra image:
 ```
 docker pull cassandra
 ```
+---
 #### Launch Cassandra Cluster in container
+---
+
