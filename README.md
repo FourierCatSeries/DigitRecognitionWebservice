@@ -61,7 +61,7 @@ initiate cassanraModule object by
 ```
 cas = cassandraModule.cassandraModule(cluster_IP = [list of IP address of cassandra cluster IP], cluster_port = port_to_communicate_cassandra_cluster)
 ```
-You want to have a cassandra cluster launched before initialize cassandraModule object. Please refer to [Launch Cassandra Cluster in container](####-launch-Cassandra-Cluster-in-container)
+You want to have a cassandra cluster launched before initialize cassandraModule object. Please refer to [Launch Cassandra Cluster in container](#launch-cassandra-cluster-in-container)
 
 create keyspace in the cluser by:
 ```
@@ -153,7 +153,7 @@ if you are using docker desktop, make sure to set the drive which contains the d
 <img src = "https://github.com/FourierCatSeries/DigitRecognitionWebservice/blob/master/shared_folder.png" />
 Copy all the content under ```/data``` to the mounted point of your volume or under your shared directory.
 
-3. [Launch Cassandra Cluster in container](####-launch-Cassandra-Cluster-in-container)
+3. [Launch Cassandra Cluster in container](#launch-Cassandra-Cluster-in-container)
 
 4. launch the container with interactive shell so that you can monitor the behavior of the flask server.
 if you are using volume
